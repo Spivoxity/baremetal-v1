@@ -27,7 +27,7 @@ void show(const unsigned *img, int n)
     while (n-- > 0) {
         /* Takes 15msec per iteration */
         for (int p = 0; p < 3; p++) {
-            GPIO_OUT = img[p];
+            GPIO.OUT = img[p];
             timer_delay(5);
         }
     }
@@ -36,7 +36,7 @@ void show(const unsigned *img, int n)
 /* heart_task -- show beating heart */
 void heart_task(int n)
 {
-    GPIO_DIRSET = 0xfff0;
+    GPIO.DIRSET = 0xfff0;
 
     priority(P_HIGH);
 

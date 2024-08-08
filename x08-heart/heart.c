@@ -32,7 +32,7 @@ void show(const unsigned img[], int n)
     while (n-- > 0) {
         /* Takes 15msec per iteration */
         for (int p = 0; p < 3; p++) {
-            GPIO_OUT = img[p];
+            GPIO.OUT = img[p];
             delay(JIFFY);
         }
     }
@@ -47,7 +47,7 @@ int pressed(int button)
 /* init -- main program */
 void init(void)
 {
-    GPIO_DIR = 0xfff0;
+    GPIO.DIR = 0xfff0;
     gpio_connect(BUTTON_A);
     gpio_connect(BUTTON_B);
 

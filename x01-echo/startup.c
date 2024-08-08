@@ -1,7 +1,6 @@
-/* common/startup.c */
+/* ubit-v1/startup.c */
 /* Copyright (c) 2018 J. M. Spivey */
 
-#define INLINE                  /* Create actual copies of inline functions */
 #include "hardware.h"
 
 /* init -- main program, creates application processes */
@@ -68,9 +67,9 @@ extern unsigned char __data_start[], __data_end[],
 void __reset(void)
 {
     /* Activate the crystal clock */
-    CLOCK_HFCLKSTARTED = 0;
-    CLOCK_HFCLKSTART = 1;
-    while (! CLOCK_HFCLKSTARTED) { }
+    CLOCK.HFCLKSTARTED = 0;
+    CLOCK.HFCLKSTART = 1;
+    while (! CLOCK.HFCLKSTARTED) { }
 
     int data_size = __data_end - __data_start;
     int bss_size = __bss_end - __bss_start;
@@ -92,13 +91,77 @@ implemented.*/
 void irq_priority(int irq, unsigned prio)
 {
     if (irq < 0)
-        SET_BYTE(SCB_SHPR[(irq+12) >> 2], irq & 0x3, prio);
+        SET_BYTE(SCB.SHPR[(irq+12) >> 2], irq & 0x3, prio);
     else
-        SET_BYTE(NVIC_IPR[irq >> 2], irq & 0x3, prio);
+        SET_BYTE(NVIC.IPR[irq >> 2], irq & 0x3, prio);
 }
      
-/* See hardware.h for macros enable_irq, disable_irq, 
-clear_pending, reschedule */
+/* enable_irq -- enable interrupts from an IRQ */
+void enable_irq(int irq)
+{
+    NVIC.ISER[0] = BIT(irq);
+}
+
+/* disable_irq -- disable interrupts from a specific IRQ */
+void disable_irq(int irq)
+{
+    NVIC.ICER[0] = BIT(irq);
+}
+
+/* clear_pending -- clear pending interrupt from an IRQ */
+void clear_pending(int irq)
+{
+    NVIC.ICPR[0] = BIT(irq);
+}
+
+
+/* DEVICE TABLES */
+
+volatile struct _timer * const TIMER[] = {
+    &TIMER0, &TIMER1, &TIMER2
+};
+
+volatile struct _i2c * const I2C[] = {
+    &I2C0, &I2C1
+};
+
+volatile struct _spi * const SPI[] = {
+    &SPI0, &SPI1
+};
+
+
+/* GPIO CONVENIENCE */
+
+/* gpio_dir -- set GPIO direction */
+void gpio_dir(unsigned pin, unsigned dir) {
+    if (dir)
+        GPIO.DIRSET = BIT(pin);
+    else
+        GPIO.DIRCLR = BIT(pin);
+}
+
+/* gpio_connect -- connect pin for input */
+void gpio_connect(unsigned pin) {
+    SET_FIELD(GPIO.PINCNF[pin], GPIO_PINCNF_INPUT, GPIO_INPUT_Connect);
+}
+
+/* gpio_drive -- set GPIO drive strength */
+void gpio_drive(unsigned pin, unsigned mode) {
+    SET_FIELD(GPIO.PINCNF[pin], GPIO_PINCNF_DRIVE, mode);
+}
+
+/* gpio_out -- set GPIO output value */
+void gpio_out(unsigned pin, unsigned value) {
+    if (value)
+        GPIO.OUTSET = BIT(pin);
+    else
+        GPIO.OUTCLR = BIT(pin);
+}
+
+/* gpio_in -- get GPIO input bit */
+unsigned gpio_in(unsigned pin) {
+    return GET_BIT(GPIO.IN, pin);
+}
 
 
 /*  INTERRUPT VECTORS */
@@ -124,11 +187,11 @@ void spin(void)
 {
     intr_disable();
 
-    GPIO_DIR = 0xfff0;
+    GPIO.DIR = 0xfff0;
     while (1) {
-        GPIO_OUT = 0x4000;
+        GPIO.OUT = 0x4000;
         delay_loop(500000);
-        GPIO_OUT = 0;
+        GPIO.OUT = 0;
         delay_loop(100000);
     }          
 }
@@ -149,8 +212,8 @@ void timer1_handler(void);
 void timer2_handler(void);
 void power_clock_handler(void);
 void radio_handler(void);
-void i2c_handler(void);
-void spi_handler(void);
+void i2c0_spi0_handler(void);
+void i2c1_spi1_handler(void);
 void gpiote_handler(void);
 void adc_handler(void);
 void rtc0_handler(void);
@@ -194,8 +257,8 @@ void *__vectors[] __attribute((section(".vectors"))) = {
     power_clock_handler,        /*  0 */
     radio_handler,
     uart_handler,
-    i2c_handler,
-    spi_handler,                /*  4 */
+    i2c0_spi0_handler,
+    i2c1_spi1_handler,          /*  4 */
     0,
     gpiote_handler,
     adc_handler,
