@@ -15,7 +15,6 @@ CPU = -mcpu=cortex-m0 -mthumb
 CFLAGS = -O -g -Wall -ffreestanding
 STARTUP = startup.o
 LIBS = -lgcc
-LDSCRIPT = nRF51822.ld
 
 %.o: %.c
 	$(CC) $(CPU) $(CFLAGS) $(INCLUDE) -c $< -o $@
@@ -24,7 +23,7 @@ LDSCRIPT = nRF51822.ld
 	$(AS) $(CPU) $< -o $@
 
 %.elf: %.o $(DEPS) $(STARTUP)
-	$(CC) $(CPU) $(CFLAGS) -T $(LDSCRIPT) \
+	$(CC) $(CPU) $(CFLAGS) -T device.ld \
 		$^ -nostdlib $(LIBS) -o $@ -Wl,-Map,$*.map
 	$(SIZE) $@
 
