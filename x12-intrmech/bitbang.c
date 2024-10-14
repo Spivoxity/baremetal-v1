@@ -7,6 +7,46 @@
    (hardware control).  Meanwhile, the random number generator is
    causing interrupts at irregular intervals, with a pulse on pad 2. */
 
+/* square_out -- bitbang a 1MHz square wave on PAD0 */
+void square_out(void)
+{
+    while (1) {
+        GPIO.OUTSET = BIT(PAD0);
+        nop(); nop(); nop(); nop(); nop(); nop();
+        GPIO.OUTCLR = BIT(PAD0);
+        nop(); nop(); nop();
+    }
+}
+
+/* sqwave_init -- configure PPI to output a square wave on PAD1 */
+void sqwave_init(void)
+{
+    /* Set up timer 0 to reset once every 500ns */
+    TIMER0.STOP = 1;
+    TIMER0.MODE = TIMER_MODE_Timer;
+    TIMER0.BITMODE = TIMER_BITMODE_16Bit;
+    TIMER0.PRESCALER = 0;       // Clocked at 16MHz
+    TIMER0.CLEAR = 1;
+    TIMER0.CC[0] = 8;           // Reset once every 8 counts
+    TIMER0.SHORTS = BIT(TIMER_COMPARE0_CLEAR);
+    
+    /* Set up "GPIO Tasks and Events" channel 0 to toggle PAD1 */
+    GPIOTE.CONFIG[0] =
+        FIELD(GPIOTE_CONFIG_MODE, GPIOTE_MODE_Task)
+        | FIELD(GPIOTE_CONFIG_PSEL, PAD1)
+        | FIELD(GPIOTE_CONFIG_POLARITY, GPIOTE_POLARITY_Toggle)
+        | FIELD(GPIOTE_CONFIG_OUTINIT, 0);
+        
+    /* Set up "Programmed Peripheral Interconnect" channel 0 
+       to link timer and GPIOTE */
+    PPI.CH[0].EEP = &TIMER0.COMPARE[0];
+    PPI.CH[0].TEP = &GPIOTE.OUT[0];
+    PPI.CHENSET = BIT(0);
+    
+    /* Start the timer */
+    TIMER0.START = 1;
+}
+
 /* rng_init -- initialise hardware random number generator */
 void rng_init(void)
 {
@@ -22,28 +62,18 @@ void rng_init(void)
 /* rng_handler -- interrupt handler for random number generator */
 void rng_handler(void)
 {
-    if (RNG.VALRDY) {
-        gpio_out(PAD1, 1);
-        RNG.VALRDY = 0;         /* Just acknowledge the interrupt */
-        gpio_out(PAD1, 0);
-    }
-}
-
-void square_out(void)
-{
-    while (1) {
-        gpio_out(PAD0, 0);
-        nop(); nop(); nop(); nop(); nop(); nop();
-        gpio_out(PAD0, 1);
-        nop(); nop(); nop();
-    }
+    GPIO.OUTSET = BIT(PAD2);
+    RNG.VALRDY = 0;             /* Just acknowledge the interrupt */
+    GPIO.OUTCLR = BIT(PAD2);
 }
 
 void init(void)
 {
     gpio_dir(PAD0, 1);
     gpio_dir(PAD1, 1);
+    gpio_dir(PAD2, 1);
 
     rng_init();
+    sqwave_init();
     square_out();
 }
