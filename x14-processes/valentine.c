@@ -36,9 +36,14 @@ void show(const unsigned *img, int n)
 /* heart_task -- show beating heart */
 void heart_task(int n)
 {
-    GPIO.DIRSET = 0xfff0;
+    GPIO.DIRSET = LED_MASK;
 
-    priority(P_HIGH);
+    /* Set row pins to high-drive mode to increase brightness */
+    gpio_drive(ROW1, GPIO_DRIVE_S0H1);
+    gpio_drive(ROW2, GPIO_DRIVE_S0H1);
+    gpio_drive(ROW3, GPIO_DRIVE_S0H1);
+
+    /* priority(P_HIGH); */
 
     while (1) {
         show(heart, 70);
