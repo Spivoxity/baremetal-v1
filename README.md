@@ -3,7 +3,7 @@ Bare metal micro:bit &ndash; code for V1
 
 This repository contains code for the experiments that are described
 in the book,
-[_Bare metal micro:bit_](https://spivey.oriel.ox.ac.uk/baremetal),
+[_Bare metal micro:bit_](https://spivoxity.net/baremetal),
 configured for the V1 micro:bit with an nRF51822
 microcontroller chip.
 
